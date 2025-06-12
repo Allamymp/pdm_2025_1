@@ -9,7 +9,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.weatherapp.ui.HomePage
+import com.weatherapp.ui.pages.HomePage
 import com.weatherapp.ui.theme.WeatherAppTheme
 
 class MainActivity : ComponentActivity() {
