@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.rounded.FavoriteBorder
@@ -20,22 +21,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.toMutableStateList
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.weatherapp.model.City
-import androidx.compose.foundation.lazy.items
 import com.weatherapp.MainActivity
+import com.weatherapp.model.City
+import com.weatherapp.model.MainViewModel
 
 
 @Composable
-fun ListPage(modifier: Modifier = Modifier) {
-    val cityList = remember { getCities().toMutableStateList() }
+fun ListPage(modifier: Modifier = Modifier, viewModel: MainViewModel) {
     val activity = LocalContext.current as? Activity
+    val cityList = viewModel.cities
+
+
     LazyColumn(
         modifier = modifier
             .fillMaxSize()
@@ -43,14 +44,9 @@ fun ListPage(modifier: Modifier = Modifier) {
     ) {
         items(cityList, key = { it.name }) { city ->
             CityItem(city = city, onClose = {
-                    Toast.makeText(activity, "CityItem onClose! "+city.name, Toast.LENGTH_LONG).show()
-                    activity?.startActivity(
-                        Intent(activity, MainActivity::class.java).setFlags(
-                            FLAG_ACTIVITY_SINGLE_TOP
-                        )
-                    )
+                viewModel.remove(city);
             }, onClick = {
-                Toast.makeText(activity, "CityItem onClick! "+city.name, Toast.LENGTH_LONG).show()
+                Toast.makeText(activity, "CityItem onClick! " + city.name, Toast.LENGTH_LONG).show()
                 activity?.startActivity(
                     Intent(activity, MainActivity::class.java).setFlags(
                         FLAG_ACTIVITY_SINGLE_TOP
@@ -69,7 +65,10 @@ fun CityItem(
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth().padding(8.dp).clickable { onClick() },
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .clickable { onClick() },
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -78,21 +77,20 @@ fun CityItem(
         )
         Spacer(modifier = Modifier.size(12.dp))
         Column(modifier = modifier.weight(1f)) {
-            Text(modifier = Modifier,
+            Text(
+                modifier = Modifier,
                 text = city.name,
-                fontSize = 24.sp)
-            Text(modifier = Modifier,
-                text = city.weather?:"Carregando clima...",
-                fontSize = 16.sp)
+                fontSize = 24.sp
+            )
+            Text(
+                modifier = Modifier,
+                text = city.weather ?: "Carregando clima...",
+                fontSize = 16.sp
+            )
         }
         IconButton(onClick = onClose) {
             Icon(Icons.Filled.Close, contentDescription = "Close")
         }
     }
-}
-
-
-private fun getCities() = List(20) { i ->
-    City(name = "Cidade $i", weather = "Carregando clima...")
 }
 
