@@ -54,7 +54,7 @@ private val service : WeatherService): ViewModel(), FBDatabase.Listener {
         _cities.remove(city.toCity())
     }
 
-    private fun getCities() = List(20) { i ->
+    private fun generateMockCities() = List(20) { i ->
         City(name = "Cidade $i", weather = "Carregando clima...")
     }
 

@@ -3,7 +3,7 @@ package com.weatherapp.api
  import retrofit2.Call
 import retrofit2.http.GET
 import retrofit2.http.Query
- import com.weatherapp.WEATHER_API_KEY
+ import com.weatherapp.BuildConfig
 
 
 interface WeatherServiceAPI {
