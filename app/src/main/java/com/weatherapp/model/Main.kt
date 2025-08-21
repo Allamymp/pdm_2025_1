@@ -12,6 +12,7 @@ import com.weatherapp.db.fb.FBCity
 import com.weatherapp.db.fb.FBDatabase
 import com.weatherapp.db.fb.FBUser
 import com.weatherapp.db.fb.toFBCity
+import com.weatherapp.ui.nav.Route
 
 
 class MainViewModel(
@@ -19,10 +20,19 @@ class MainViewModel(
     private val service: WeatherService
 ) : ViewModel(), FBDatabase.Listener {
 
+    private var _page = mutableStateOf<Route>(Route.Home)
+    var page: Route
+        get() = _page.value
+        set(tmp) {
+            _page.value = tmp
+        }
+
     private var _city = mutableStateOf<City?>(null)
     var city: City?
         get() = _city.value
-        set(tmp) { _city.value = tmp?.copy() }
+        set(tmp) {
+            _city.value = tmp?.copy()
+        }
     private val _cities = mutableStateMapOf<String, City>()
     val cities: List<City>
         get() = _cities.values.toList()
@@ -58,13 +68,17 @@ class MainViewModel(
     override fun onCityUpdated(city: FBCity) {
         _cities.remove(city.name)
         _cities[city.name!!] = city.toCity()
-        if (_city.value?.name == city.name) { _city.value = city.toCity() }
+        if (_city.value?.name == city.name) {
+            _city.value = city.toCity()
+        }
     }
 
 
     override fun onCityRemoved(city: FBCity) {
         _cities.remove(city.name)
-        if (_city.value?.name == city.name) { _city.value = null }
+        if (_city.value?.name == city.name) {
+            _city.value = null
+        }
     }
 
     private fun generateMockCities() = List(20) { i ->
@@ -105,9 +119,10 @@ class MainViewModel(
             _cities[name] = newCity as City
         }
     }
+
     fun loadForecast(name: String) {
         service.getForecast(name) { apiForecast ->
-            val newCity = _cities[name]!!.copy( forecast = apiForecast?.toForecast() )
+            val newCity = _cities[name]!!.copy(forecast = apiForecast?.toForecast())
             _cities.remove(name)
             _cities[name] = newCity
             city = if (city?.name == name) newCity else city
