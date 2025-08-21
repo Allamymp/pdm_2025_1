@@ -9,18 +9,14 @@ import com.google.android.gms.maps.model.LatLng
 import com.weatherapp.api.WeatherService
 import com.weatherapp.api.toForecast
 import com.weatherapp.api.toWeather
-import com.weatherapp.db.fb.FBCity
-import com.weatherapp.db.fb.FBDatabase
-import com.weatherapp.db.fb.FBUser
-import com.weatherapp.db.fb.toFBCity
+import com.weatherapp.repo.Repository
 import com.weatherapp.ui.nav.Route
 
-
 class MainViewModel(
-    private val db: FBDatabase,
+    private val repository: Repository,
     private val service: WeatherService,
-    private val monitor: ForecastMonitor
-) : ViewModel(), FBDatabase.Listener {
+    internal val monitor: ForecastMonitor
+) : ViewModel(), Repository.Listener {
 
     private var _page = mutableStateOf<Route>(Route.Home)
     var page: Route
@@ -35,69 +31,30 @@ class MainViewModel(
         set(tmp) {
             _city.value = tmp?.copy()
         }
+
     private val _cities = mutableStateMapOf<String, City>()
-    val cities: List<City>
-        get() = _cities.values.toList()
+    val cities: List<City> get() = _cities.values.toList()
+
     private val _user = mutableStateOf<User?>(null)
-    val user: User?
-        get() = _user.value
+    val user: User? get() = _user.value
 
     init {
-        db.setListener(this)
+        repository.setListener(this)
     }
 
     fun remove(city: City) {
-        db.remove(city.toFBCity())
+        repository.remove(city)
     }
 
     fun add(name: String, location: LatLng? = null) {
-        db.add(City(name = name, location = location).toFBCity())
-    }
-
-    override fun onUserLoaded(user: FBUser) {
-        _user.value = user.toUser()
-    }
-
-    override fun onUserSignOut() {
-        monitor.cancelAll()
-    }
-
-    override fun onCityAdded(city: FBCity) {
-        _cities[city.name!!] = city.toCity()
-        monitor.updateCity(city.toCity())
-    }
-
-
-    override fun onCityUpdated(city: FBCity) {
-        val oldCity = _cities[city.name]
-        _cities.remove(city.name)
-        _cities[city.name!!] = city.toCity().copy(
-            weather = oldCity?.weather,
-            forecast = oldCity?.forecast
-        )
-        if (_city.value?.name == city.name) {
-            _city.value = _cities[city.name]
-        }
-        monitor.updateCity(city.toCity())
-    }
-
-
-    override fun onCityRemoved(city: FBCity) {
-        _cities.remove(city.name)
-        if (_city.value?.name == city.name) {
-            _city.value = null
-        }
-        monitor.cancelCity(city.toCity())
-    }
-
-    private fun generateMockCities() = List(20) { i ->
-        City(name = "Cidade $i")
+        val newCity = City(name = name, location = location)
+        repository.add(newCity)
     }
 
     fun add(name: String) {
         service.getLocation(name) { lat, lng ->
             if (lat != null && lng != null) {
-                db.add(City(name = name, location = LatLng(lat, lng), isMonitored = true).toFBCity())
+                repository.add(City(name = name, location = LatLng(lat, lng), isMonitored = true))
             }
         }
     }
@@ -105,62 +62,85 @@ class MainViewModel(
     fun add(location: LatLng) {
         service.getName(location.latitude, location.longitude) { name ->
             if (name != null) {
-                db.add(City(name = name, location = location, isMonitored = true).toFBCity())
+                repository.add(City(name = name, location = location, isMonitored = true))
             }
         }
     }
 
+    override fun onUserLoaded(user: User) {
+        _user.value = user
+    }
 
-    class MainViewModelFactory(
-        private val db: FBDatabase,
-        private val service: WeatherService,
-        private val monitor: ForecastMonitor
-    ) :
-        ViewModelProvider.Factory {
-        override fun <T : ViewModel> create(modelClass: Class<T>): T {
-            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
-                return MainViewModel(db, service, monitor) as T
-            }
-            throw IllegalArgumentException("Unknown ViewModel class")
+    override fun onUserSignOut() {
+        monitor.cancelAll()
+    }
+
+    override fun onCityAdded(city: City) {
+        _cities[city.name!!] = city
+        monitor.updateCity(city)
+    }
+
+    override fun onCityUpdated(city: City) {
+        val oldCity = _cities[city.name]
+        _cities[city.name!!] = city.copy(
+            weather = oldCity?.weather,
+            forecast = oldCity?.forecast
+        )
+        if (_city.value?.name == city.name) {
+            _city.value = _cities[city.name]
         }
+        monitor.updateCity(city)
+    }
+
+    override fun onCityRemoved(city: City) {
+        _cities.remove(city.name)
+        if (_city.value?.name == city.name) _city.value = null
+        monitor.cancelCity(city)
     }
 
     fun loadWeather(name: String) {
         service.getWeather(name) { apiWeather ->
             val newCity = _cities[name]?.copy(weather = apiWeather?.toWeather())
-            _cities.remove(name)
-            _cities[name] = newCity as City
+            if (newCity != null) _cities[name] = newCity
         }
     }
 
     fun loadForecast(name: String) {
         service.getForecast(name) { apiForecast ->
-            val newCity = _cities[name]!!.copy(forecast = apiForecast?.toForecast())
-            _cities.remove(name)
-            _cities[name] = newCity
-            city = if (city?.name == name) newCity else city
+            val newCity = _cities[name]?.copy(forecast = apiForecast?.toForecast())
+            if (newCity != null) {
+                _cities[name] = newCity
+                if (city?.name == name) city = newCity
+            }
         }
     }
 
-    fun loadBitmap(name: String)
-    {
-        val city = _cities[name]
-        service.getBitmap(city?.weather!!.imgUrl) { bitmap ->
+    fun loadBitmap(name: String) {
+        val city = _cities[name] ?: return
+        service.getBitmap(city.weather?.imgUrl ?: return) { bitmap ->
             val newCity = city.copy(
-                weather = city.weather?.copy(
-                    bitmap = bitmap
-                )
+                weather = city.weather.copy(bitmap = bitmap)
             )
-            _cities.remove(name)
             _cities[name] = newCity
         }
     }
 
-   fun update(city: City){
-       _city.value = city
+    fun update(city: City) {
+        _city.value = city
+        _cities[city.name] = city
+        repository.update(city)
+    }
 
-       _cities[city.name] = city
-
-       db.update(city.toFBCity())
-   }
+    class MainViewModelFactory(
+        private val repository: Repository,
+        private val service: WeatherService,
+        private val monitor: ForecastMonitor
+    ) : ViewModelProvider.Factory {
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            if (modelClass.isAssignableFrom(MainViewModel::class.java)) {
+                return MainViewModel(repository, service, monitor) as T
+            }
+            throw IllegalArgumentException("Unknown ViewModel class")
+        }
+    }
 }

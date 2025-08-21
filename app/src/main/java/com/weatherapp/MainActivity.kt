@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.core.util.Consumer
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination
 import androidx.navigation.NavDestination.Companion.hasRoute
@@ -40,8 +41,10 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.auth
 import com.weatherapp.api.WeatherService
 import com.weatherapp.db.fb.FBDatabase
+import com.weatherapp.db.local.LocalDatabase
 import com.weatherapp.model.MainViewModel
 import com.weatherapp.model.MainViewModel.MainViewModelFactory
+import com.weatherapp.repo.Repository
 import com.weatherapp.ui.components.BottomNavBar
 import com.weatherapp.ui.components.CityDialog
 import com.weatherapp.ui.nav.BottomNavItem
@@ -58,14 +61,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+
             val fbDB = remember { FBDatabase() }
+            val user = Firebase.auth.currentUser
+            val dbName = if (user != null) {
+                "local_database_${user.uid}"
+            } else {
+                "local_database_anonimo"
+            }
+            val localDB = remember { LocalDatabase(this, dbName) }
+            val repository = remember { Repository(
+                fbDB = fbDB,
+                localDB = localDB
+            ) }
             val monitor = ForecastMonitor(this)
             val weatherService = remember { WeatherService() }
             val viewModel: MainViewModel = viewModel(
-                factory = MainViewModelFactory(fbDB, weatherService, monitor)
+                factory = MainViewModelFactory(repository = repository, weatherService, monitor)
             )
             DisposableEffect(Unit) {
-                val listener = androidx.core.util.Consumer<Intent> { intent ->
+                val listener = Consumer<Intent> { intent ->
                     val name = intent.getStringExtra("city")
                     val city = viewModel.cities.find { it.name == name }
                     viewModel.city = city
