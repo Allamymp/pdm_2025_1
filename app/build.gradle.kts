@@ -7,17 +7,17 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization") version "1.9.0"
     id ("com.google.android.libraries.mapsplatform.secrets-gradle-plugin")
     alias(libs.plugins.google.gms.google.services)
-    id("com.google.devtools.ksp") version " 2.2.0-2.0.2" apply false
+    id("com.google.devtools.ksp") version "2.2.0-2.0.2"
 }
 
 android {
     namespace = "com.weatherapp"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.weatherapp"
         minSdk = 24
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         versionName = "1.0"
 
@@ -31,6 +31,11 @@ android {
         buildConfigField("String", "WEATHER_API_KEY", "\"$weatherKey\"")
 
     }
+
+    composeOptions {
+        kotlinCompilerExtensionVersion = "1.5.3"
+    }
+
 
     buildTypes {
         release {
@@ -90,4 +95,11 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.5.0") // coil
     implementation("com.squareup.picasso:picasso:2.8") // Picasso
+
+    val room_version = "2.7.2"
+    implementation("androidx.room:room-runtime:$room_version")
+    implementation("androidx.room:room-ktx:$room_version")
+    ksp("androidx.room:room-compiler:$room_version")
+
+
 }
