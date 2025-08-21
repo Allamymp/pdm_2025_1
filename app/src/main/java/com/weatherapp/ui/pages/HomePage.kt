@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.lazy.LazyColumn
-
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBox
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -19,13 +17,16 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.weatherapp.R
 import com.weatherapp.model.MainViewModel
 
-import androidx.compose.foundation.lazy.items
+import coil.compose.AsyncImage
+
 
 @Composable
 fun HomePage(Modifier: Modifier.Companion, viewModel: MainViewModel) {
@@ -43,11 +44,14 @@ fun HomePage(Modifier: Modifier.Companion, viewModel: MainViewModel) {
             }
         } else {
             Row {
-                Icon(
-                    imageVector = Icons.Filled.AccountBox,
-                    contentDescription = "Localized description",
-                    modifier = Modifier.size(150.dp)
-                )
+
+                    AsyncImage( // Substitui o Icon
+                        model = viewModel.city?.weather?.imgUrl,
+                        modifier = Modifier.size(100.dp),
+                        error = painterResource(id = R.drawable.loading),
+                        contentDescription = "Imagem"
+                    )
+
                 Column {
                     Spacer(modifier = Modifier.size(12.dp))
                     Text( text = viewModel.city?.name ?: "Selecione uma cidade...",
